@@ -42,6 +42,11 @@ Dive into our comprehensive documentation to start modeling today:
 - 📝 [**Notes & Future Goals**](docs/NOTES_AND_GOALS.md) - Architectural decisions and the development roadmap.
 - 🤝 [**Contributing Guidelines**](docs/CONTRIBUTING.md) - Guidelines for branching and submitting PRs.
 
+#### Thanks to these Libraries!
+- bpmn.js (by BPMN.IO)
+- fastapi
+- bootstrap
+
 ---
 <div align="center">
   <i>Built to make process automation accessible for every department.</i>
