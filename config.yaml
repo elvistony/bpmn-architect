@@ -1,0 +1,27 @@
+app:
+  logo: "https://img.icons8.com/?size=96&id=Z5oVE4Bv4Ws5&format=png"
+  subtitle: "Collaborative Process Mapping"
+  contact_email: "testuser@unfoundry.org"
+  templates_path: "bpmn_templates"
+
+storage:
+  diagram_path: "diagram_storage"
+  sql_instance_type: "sqlite"
+  db_connection_string: "sqlite:///./diagrams.db"
+
+auth:
+  method: "username,password"
+  credentials: "admin,password"
+  admins:
+    - admin
+    - John.Doe
+    - Some.One
+
+sessions:
+  heartbeat_frequency_sec: 15
+  idle_timeout_min: 15
+
+git:
+  backup_enabled: false
+  commit_format: "Edited by: <last_edited_by>"
+  commit_syntax: "git add . && git commit -m \"<commit_msg>\" && git push origin"

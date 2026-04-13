@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header Section -->
+    <div class="row align-items-center mb-5">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <h1 class="display-4 fw-bold mb-3" style="color: var(--bs-primary);">Welcome to BPMN Architect</h1>
+            <p class="lead text-muted mb-4">
+                A robust, collaborative process mapping environment designed to help your team document, streamline, and architect automation flows visually using industry-standard BPMN 2.0.
+            </p>
+            <a href="/app/" class="btn btn-primary btn-lg shadow-sm px-4 me-2">
+                <i class="fa fa-folder-open border-end pe-2 me-2"></i> Open Library
+            </a>
+            <a href="/app/#new-process" class="btn btn-outline-secondary btn-lg shadow-sm px-4" style="border-width: 2px;">
+                <i class="fa fa-plus me-2"></i> New Process
+            </a>
+        </div>
+        <div class="col-lg-6">
+            <img src="https://via.placeholder.com/800x500/e0e3e5/191c1e?text=BPMN+Architect+Environment" alt="BPMN Architect" class="img-fluid rounded shadow-lg border">
+        </div>
+    </div>
+
+    <hr class="my-5">
+
+    <!-- Feature Section -->
+    <h2 class="text-center fw-bold mb-5">Getting Started</h2>
+
+    <div class="row g-5 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 glass-panel shadow-sm p-4">
+                <div class="text-primary mb-3">
+                    <i class="fa fa-folder-open fa-2x"></i>
+                </div>
+                <h4 class="fw-bold">1. Access The Library</h4>
+                <p class="text-muted">
+                    Your local workspace Library safely caches and tracks every process diagram you open or edit. Access them offline quickly or spin up fresh blank templates directly from the prompt.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 glass-panel shadow-sm p-4">
+                <div class="text-primary mb-3">
+                    <i class="fa fa-paint-brush fa-2x"></i>
+                </div>
+                <h4 class="fw-bold">2. Advanced Editor</h4>
+                <p class="text-muted">
+                    Draw complex automation logic. Add dynamic metadata to nodes, link pools to lanes, and auto-sync changes directly to the enterprise core safely.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 glass-panel shadow-sm p-4">
+                <div class="text-primary mb-3">
+                    <i class="fa fa-share-alt fa-2x"></i>
+                </div>
+                <h4 class="fw-bold">3. Embed & Collaborate</h4>
+                <p class="text-muted">
+                    When you finish authoring, send direct view-only links to stakeholders. Lock features prevent accidental collision editing from multiple authors at once.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Ribbons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-primary d-flex shadow-sm rounded border-0" role="alert" style="background-color: #d5e3fc; color: #001a40;">
+                <i class="fa fa-info-circle fa-2x me-3 align-self-center"></i>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">Best Practices</h5>
+                    <p class="mb-0">
+                        Always name your Process metadata adequately (Project Name, Description) so the architecture team can quickly discern your diagram's purpose inside the overarching backend schema. Do not keep unused tabs active on the editor, as your session will hold a physical lock preventing co-workers from making adjustments.
+                    </p>
+                </div>
+            </div>
+
+            <div class="alert alert-warning d-flex shadow-sm rounded border-0 mt-4" role="alert" style="background-color: #ffead1; color: #402000;">
+                <i class="fa fa-exclamation-triangle fa-2x me-3 align-self-center"></i>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">Automated Deletions</h5>
+                    <p class="mb-0">
+                        Process diagrams deleted via the internal Library will only perform a Soft-Delete. To fully drop data or restore structures, please contact your systems administrator or write to <strong>{{ CONTACT_EMAIL }}</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

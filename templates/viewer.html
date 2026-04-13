@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/diagram-js.css">
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css">
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-font/css/bpmn.css">
+<style>
+    #canvas {
+        height: calc(100vh - 140px);
+        width: 100%;
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block menubar %}
+<ul class="navbar-nav me-auto mb-2 mb-lg-0" style="font-size: 0.85rem; font-weight: 500;">
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="fileDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            File
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="fileDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" id="menu-download-bpmn"><i
+                        class="fa fa-download me-2 text-primary"></i> Download .bpmn</a></li>
+            <li><a class="dropdown-item" href="#" id="menu-download-svg"><i class="fa fa-image me-2 text-primary"></i>
+                    Export as SVG</a></li>
+        </ul>
+    </li>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="aboutDropdown" role="button"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            About
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="aboutDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="mailto:{{ CONTACT_EMAIL }}"><i
+                        class="fa fa-envelope-o me-2 text-primary"></i> Contact Admin</a></li>
+            <li><a class="dropdown-item" href="/"><i class="fa fa-info-circle me-2 text-primary"></i> About Software</a>
+            </li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item disabled" href="#">Version 1.0.0</a></li>
+        </ul>
+    </li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: calc(100vh - 61px);">
+    <!-- Sidebar -->
+    <div class="flex-shrink-0 p-4 border-end"
+        style="width: 320px; background-color: var(--surface-highest); overflow-y: auto;">
+        <a href="/app/" class="btn btn-sm mb-4 px-3 py-2"
+            style="background-color: var(--surface-low); color: var(--bs-primary); border: none;">
+            <i class="fa fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Project</h6>
+        <h4 style="color: var(--bs-primary); font-family: var(--bs-heading-font-family); font-weight: 800;">{{
+            diagram.project_name }}</h4>
+
+        <hr class="my-4" style="border-color: var(--outline-variant); opacity: 0.3;">
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Diagram / Flow</h6>
+        <p class="fw-bold fs-5 text-dark mb-2" style="font-family: var(--bs-heading-font-family);">{{
+            diagram.friendly_name }}</p>
+
+        <div class="mb-4">
+            <span class="badge border-0 rounded-pill px-3 py-2"
+                style="background-color: var(--surface-lowest); color: #57657a; font-weight: 600;">
+                <i class="fa fa-eye me-1"></i> Read Only
+            </span>
+        </div>
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Author</h6>
+        <p class="text-dark fw-medium mb-1"><i class="fa fa-user-o me-2 text-muted"></i>{{ diagram.author_username }}
+        </p>
+        {% if diagram.last_edited_by %}
+        <p class="text-muted mb-2" style="font-size: 0.75rem;"><i class="fa fa-pencil me-2"></i>Last edited by {{
+            diagram.last_edited_by }}</p>
+        {% endif %}
+
+        <hr class="my-4" style="border-color: var(--outline-variant); opacity: 0.3;">
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Description</h6>
+        <p class="text-muted lh-lg" style="font-size: 0.85rem;">{{ diagram.project_description or 'No description
+            provided.' }}</p>
+
+        <a href="/app/{{ diagram.id }}/edit" class="btn btn-primary w-100 mt-4 py-2" style="font-weight: 600;">
+            <i class="fa fa-pencil me-1"></i> Edit Process
+        </a>
+    </div>
+
+    <!-- Main Canvas Area -->
+    <div class="flex-grow-1 position-relative p-4" style="background-color: var(--bs-body-bg);">
+        <div id="canvas-container" class="glass-panel"
+            style="height: 100%; border-radius: 12px; position: relative; overflow: hidden; border: none;">
+            <div id="canvas" style="height: 100%; width: 100%; outline: none; background: transparent;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-navigated-viewer.production.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Track local usage
+        let recents = JSON.parse(localStorage.getItem('recent_bpmn') || '[]');
+        if (!recents.includes("{{ diagram.id }}")) {
+            recents.push("{{ diagram.id }}");
+            localStorage.setItem('recent_bpmn', JSON.stringify(recents));
+        }
+
+        const viewer = new BpmnJS({ container: '#canvas' });
+
+        fetch('/api/diagram/{{ diagram.id }}/xml')
+            .then(res => res.text())
+            .then(xml => viewer.importXML(xml))
+            .then(() => {
+                viewer.get('canvas').zoom('fit-viewport');
+            })
+            .catch(err => {
+                console.error("Error loading BPMN diagram", err);
+                alert("Failed to load diagram. It may have been deleted.");
+            });
+
+        // Tool binds
+        document.getElementById('menu-download-bpmn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { xml } = await viewer.saveXML({ format: true });
+            const a = document.createElement('a');
+            a.href = 'data:application/bpmn20-xml;charset=UTF-8,' + encodeURIComponent(xml);
+            const safeName = '{{ diagram.friendly_name|default("process", true) }}'.toLowerCase().replace(/[^a-z0-9 _-]/gi, '').trim();
+            a.download = safeName + '.bpmn';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        document.getElementById('menu-download-svg').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { svg } = await viewer.saveSVG();
+            const a = document.createElement('a');
+            a.href = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+            const safeName = '{{ diagram.friendly_name|default("process", true) }}'.toLowerCase().replace(/[^a-z0-9 _-]/gi, '').trim();
+            a.download = safeName + '.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    });
+</script>
+{% endblock %}

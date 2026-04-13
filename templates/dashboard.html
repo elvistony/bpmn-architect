@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block menubar %}
+<ul class="navbar-nav me-auto mb-2 mb-lg-0" style="font-size: 0.85rem; font-weight: 500;">
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="fileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            File
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="fileDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#newDiagramModal"><i class="fa fa-plus me-2 text-primary"></i> New Process</a></li>
+        </ul>
+    </li>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            About
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="aboutDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="mailto:{{ CONTACT_EMAIL }}"><i class="fa fa-envelope-o me-2 text-primary"></i> Contact Admin</a></li>
+            <li><a class="dropdown-item" href="/"><i class="fa fa-info-circle me-2 text-primary"></i> About Software</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item disabled" href="#">Version 1.0.0</a></li>
+        </ul>
+    </li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>{{ 'All Processes' if is_admin else 'My Library' }}</h3>
+        <div class="d-flex align-items-center gap-3">
+            <div class="position-relative">
+                <i class="fa fa-search text-muted position-absolute" style="top: 50%; transform: translateY(-50%); left: 15px;"></i>
+                <input type="text" id="search-input" class="form-control" placeholder="Search flows..." style="padding-left: 40px; border-radius: 8px; border-color: var(--outline-variant); width: 250px;" onkeyup="updateList()">
+            </div>
+            <!-- Instead of a New Diagram button, we rely on the menubar for New Process, but wait, the prompt doesn't explicitly ask for removing the button. I'll leave the button in dashboard but changed to New Process -->
+            {% if not is_admin %}
+            <button class="btn btn-primary d-none d-lg-inline-block" data-bs-toggle="modal" data-bs-target="#newDiagramModal">
+                <i class="fa fa-plus me-2"></i> New Process
+            </button>
+            {% else %}
+            <a href="/app/" class="btn btn-secondary text-primary" style="background-color: var(--surface-highest); border: none;">
+                <i class="fa fa-arrow-left me-2"></i> Library
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 text-muted border-0" style="font-weight: 600; font-size: 0.85rem;">Process & Diagram</th>
+                            <th class="text-muted border-0" style="font-weight: 600; font-size: 0.85rem;">Author</th>
+                            <th class="text-muted border-0" style="font-weight: 600; font-size: 0.85rem;">Status / Locked By</th>
+                            <th class="text-muted border-0" style="font-weight: 600; font-size: 0.85rem;">Last Updated</th>
+                            <th class="text-end pe-4 text-muted border-0" style="font-weight: 600; font-size: 0.85rem;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for diagram in diagrams %}
+                        <tr id="row-{{ diagram.id }}" class="d-none" style="border-bottom: 1px solid var(--outline-variant);">
+                            <td class="ps-4 py-3 border-0">
+                                <div>
+                                    <h6 class="mb-0 text-dark" style="font-weight: 700; font-family: var(--bs-heading-font-family);">{{ diagram.friendly_name }}</h6>
+                                    <small class="text-muted"><i class="fa fa-folder-o me-1"></i> {{ diagram.project_name }}</small>
+                                </div>
+                            </td>
+                            <td class="border-0"><i class="fa fa-user-o text-muted me-1"></i> {{ diagram.author_username }}</td>
+                            <td class="border-0">
+                                <span class="badge border-0 rounded-pill" style="background-color: #d5e3fc; color: #57657a;" id="lock-{{ diagram.id }}"><i class="fa fa-spin fa-spinner"></i></span>
+                            </td>
+                            <td class="border-0">
+                                <div class="mb-1 text-muted" style="font-size: 0.85rem;" id="updated-{{ diagram.id }}">{{ diagram.updated_at.strftime('%Y-%m-%d %H:%M') if diagram.updated_at else '' }}</div>
+                                <div style="font-size: 0.75rem; color: #57657a;" id="last-edited-{{ diagram.id }}">
+                                {% if diagram.last_edited_by %}
+                                    <i class="fa fa-pencil me-1"></i> by {{ diagram.last_edited_by }}
+                                {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-end pe-4 border-0">
+                                {% if is_admin %}
+                                <button class="btn btn-sm text-secondary ms-1 d-none admin-action-btn" id="unlock-{{ diagram.id }}" title="Force Unlock" onclick="adminAction('{{ diagram.id }}', 'unlock')" style="background-color: var(--surface-highest);">
+                                    <i class="fa fa-unlock"></i> Unlock
+                                </button>
+                                <button class="btn btn-sm text-secondary ms-1 d-none admin-action-btn" id="restore-{{ diagram.id }}" title="Restore Deleted" onclick="adminAction('{{ diagram.id }}', 'restore')" style="background-color: var(--surface-highest);">
+                                    <i class="fa fa-undo"></i> Restore
+                                </button>
+                                <a href="/app/{{ diagram.id }}/view" class="btn btn-sm text-primary ms-1" style="background-color: var(--surface-highest);" title="View Only" id="view-{{ diagram.id }}">
+                                    <i class="fa fa-eye"></i> View
+                                </a>
+                                {% else %}
+                                <a href="/app/{{ diagram.id }}/view" class="btn btn-sm text-primary" style="background-color: var(--surface-highest);" title="View Only" id="view-{{ diagram.id }}">
+                                    <i class="fa fa-eye"></i> View
+                                </a>
+                                <a href="/app/{{ diagram.id }}/edit" class="btn btn-sm btn-primary edit-btn ms-2" id="edit-{{ diagram.id }}" title="Edit Diagram">
+                                    <i class="fa fa-pencil"></i> Edit
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        <tr id="empty-state" class="d-none">
+                            <td colspan="5" class="text-center py-5 border-0" style="color: #57657a;">
+                                <div class="d-flex flex-column justify-content-center align-items-center h-100">
+                                    <i class="fa fa-map-o fa-3x mb-3" style="opacity: 0.5;"></i>
+                                    <div class="text-muted" style="font-family: var(--bs-heading-font-family); font-weight: 500; font-size: 1rem;">
+                                        No recent flows found in your local library.
+                                    </div>
+                                    <div style="font-size: 0.85rem;" class="mt-1 text-muted">
+                                        Click <strong>New Process</strong> to create a process map, or open a direct link to a flow to add it to your library.
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Diagram Modal -->
+<div class="modal fade" id="newDiagramModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 glass-panel">
+            <form action="/app/new/" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" style="font-family: var(--bs-heading-font-family);">New Process</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 600;">Process Name</label>
+                        <input type="text" name="project_name" class="form-control border-0" style="background-color: var(--surface-highest); border-radius: 0.125rem;" required placeholder="e.g. Acme Corp Migration">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 600;">Diagram ID</label>
+                        <input type="text" name="friendly_name" class="form-control border-0" style="background-color: var(--surface-highest); border-radius: 0.125rem;" required placeholder="e.g. Phase 1 Data Flow">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 600;">Process Description</label>
+                        <textarea name="project_description" class="form-control border-0" rows="2" style="background-color: var(--surface-highest); border-radius: 0.125rem;" placeholder="Brief details about this layout..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 600;">Template</label>
+                        <select name="template_file" class="form-select border-0" style="background-color: var(--surface-highest); border-radius: 0.125rem;">
+                            <option value="">-- Blank Workspace --</option>
+                            {% for template in templates %}
+                            <option value="{{ template }}" {% if loop.first %}selected{% endif %}>{{ template }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text mt-2" style="font-size: 0.75rem; color: #57657a;">Selecting a template will load pre-configured architecture blocks.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn text-primary px-4" data-bs-dismiss="modal" style="background-color: transparent;">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4"><i class="fa fa-arrow-right me-1"></i> Create Build</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function updateList() {
+        const isAdmin = {{ 'true' if is_admin else 'false' }};
+        const recents = JSON.parse(localStorage.getItem('recent_bpmn') || '[]');
+        const q = document.getElementById('search-input').value.toLowerCase();
+        let anyVisible = false;
+
+        fetch('/api/diagrams')
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(d => {
+                    const row = document.getElementById(`row-${d.id}`);
+                    if (!row) return;
+
+                    // Match logic
+                    const txtMatch = !q || 
+                                     (d.project_name || "").toLowerCase().includes(q) || 
+                                     (d.friendly_name || "").toLowerCase().includes(q) || 
+                                     (d.author || "").toLowerCase().includes(q);
+
+                    // If not admin and not in recents, hide it completely 
+                    if (!isAdmin && (!recents.includes(d.id) || !txtMatch)) {
+                        row.classList.add('d-none');
+                        return;
+                    }
+
+                    if (isAdmin && !txtMatch) {
+                        row.classList.add('d-none');
+                        return;
+                    }
+                    
+                    row.classList.remove('d-none');
+                    anyVisible = true;
+
+                    const lockBadge = document.getElementById(`lock-${d.id}`);
+                    const editBtn = document.getElementById(`edit-${d.id}`);
+                    const viewBtn = document.getElementById(`view-${d.id}`);
+                    const unlockBtn = document.getElementById(`unlock-${d.id}`);
+                    const restoreBtn = document.getElementById(`restore-${d.id}`);
+                    const lastEditedText = document.getElementById(`last-edited-${d.id}`);
+                    
+                    if (d.last_edited_by) {
+                        lastEditedText.innerHTML = `<i class="fa fa-pencil me-1"></i> by ${d.last_edited_by}`;
+                    }
+
+                    // Reset admin buttons
+                    if (isAdmin) {
+                        if(unlockBtn) unlockBtn.classList.add('d-none');
+                        if(restoreBtn) restoreBtn.classList.add('d-none');
+                    }
+
+                    if (d.is_deleted) {
+                        lockBadge.style.backgroundColor = '#ffdad6';
+                        lockBadge.style.color = '#ba1a1a';
+                        lockBadge.innerHTML = `<i class="fa fa-trash me-1"></i> Deleted`;
+                        
+                        if (!isAdmin && editBtn) {
+                            editBtn.classList.add('disabled');
+                            editBtn.style.opacity = "0.5";
+                            editBtn.removeAttribute("href");
+                        }
+                        if (!isAdmin && viewBtn) {
+                            viewBtn.classList.add('disabled');
+                            viewBtn.style.opacity = "0.5";
+                            viewBtn.removeAttribute("href");
+                        }
+                        
+                        if (isAdmin && restoreBtn) {
+                            restoreBtn.classList.remove('d-none');
+                        }
+                    } else if (d.locked_by) {
+                        lockBadge.style.backgroundColor = '#ffa77e';
+                        lockBadge.style.color = '#351000';
+                        lockBadge.innerHTML = `<i class="fa fa-lock me-1"></i> ${d.locked_by}`;
+                        
+                        if (d.locked_by !== "{{ current_user }}") {
+                            if(!isAdmin && editBtn) {
+                                editBtn.classList.add('disabled');
+                                editBtn.style.opacity = "0.5";
+                                editBtn.removeAttribute("href");
+                                editBtn.title = "Locked by " + d.locked_by;
+                            }
+                            if (isAdmin && unlockBtn) {
+                                unlockBtn.classList.remove('d-none');
+                            }
+                        } else {
+                            if(editBtn) {
+                                editBtn.classList.remove('disabled');
+                                editBtn.style.opacity = "1";
+                                editBtn.setAttribute("href", `/app/${d.id}/edit`);
+                                editBtn.title = "Edit Diagram";
+                            }
+                        }
+                    } else {
+                        lockBadge.style.backgroundColor = '#d5e3fc';
+                        lockBadge.style.color = '#57657a';
+                        lockBadge.innerHTML = `<i class="fa fa-code-fork me-1"></i> Available`;
+                        if(editBtn) {
+                            editBtn.classList.remove('disabled');
+                            editBtn.style.opacity = "1";
+                            editBtn.setAttribute("href", `/app/${d.id}/edit`);
+                            editBtn.title = "Edit Diagram";
+                        }
+                        if(viewBtn) {
+                            viewBtn.classList.remove('disabled');
+                            viewBtn.style.opacity = "1";
+                            viewBtn.setAttribute("href", `/app/${d.id}/view`);
+                        }
+                    }
+                });
+
+                const emptyState = document.getElementById('empty-state');
+                if (anyVisible) {
+                    emptyState.classList.add('d-none');
+                } else {
+                    emptyState.classList.remove('d-none');
+                    if (isAdmin) {
+                        emptyState.querySelector('.text-muted').innerHTML = "No flows match your search.";
+                    }
+                }
+            });
+    }
+
+    async function adminAction(id, action) {
+        if(!confirm(`Are you sure you want to force ${action} this layout?`)) return;
+        try {
+            const res = await fetch(`/api/diagram/${id}/${action}`, { method: 'POST' });
+            if(!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail || "Server Error");
+            }
+            updateList();
+        } catch(err) {
+            console.error(err);
+            alert(`Failed to ${action} diagram: ${err.message}`);
+        }
+    }
+
+    function adminRestore(id) {
+        if(!confirm("Restore this deleted flow?")) return;
+        fetch(`/api/diagram/${id}/restore`, { method: "POST" })
+            .then(() => updateList());
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        updateList();
+        
+        // Auto open modal if hashtag present
+        if (window.location.hash === '#new-process') {
+            const modalEl = document.getElementById('newDiagramModal');
+            if (modalEl) {
+                const bModal = new bootstrap.Modal(modalEl);
+                bModal.show();
+                // cleanup hash
+                history.replaceState(null, null, ' ');
+            }
+        }
+    });
+
+    // Run on load and every 5 seconds
+    updateList();
+    setInterval(updateList, 5000);
+</script>
+{% endblock %}

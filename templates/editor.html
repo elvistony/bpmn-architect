@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block menubar %}
+<ul class="navbar-nav me-auto mb-2 mb-lg-0" style="font-size: 0.85rem; font-weight: 500;">
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="fileDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            File
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="fileDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" onclick="document.getElementById('save-btn').click(); return false;"><i class="fa fa-save me-2 text-primary"></i> Save</a></li>
+            <li><a class="dropdown-item" href="#" onclick="document.getElementById('release-btn').click(); return false;"><i class="fa fa-sign-out me-2 text-primary"></i> Save and Close</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="#" id="menu-download-bpmn"><i
+                        class="fa fa-download me-2 text-primary"></i> Download .bpmn</a></li>
+            <li><a class="dropdown-item" href="#" id="menu-download-svg"><i class="fa fa-image me-2 text-primary"></i>
+                    Export as SVG</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                    data-bs-target="#deleteDiagramModal"><i class="fa fa-trash-o me-2"></i> Delete Process</a></li>
+        </ul>
+    </li>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="editDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            Edit
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="editDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" id="menu-undo"><i class="fa fa-undo me-2 text-primary"></i> Undo</a>
+            </li>
+            <li><a class="dropdown-item" href="#" id="menu-redo"><i class="fa fa-repeat me-2 text-primary"></i> Redo</a>
+            </li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="#" id="menu-autofit"><i class="fa fa-arrows-alt me-2 text-primary"></i>
+                    Auto fit diagram</a></li>
+            <li><a class="dropdown-item" href="/embed/{{ diagram.id }}/" target="_blank"><i class="fa fa-external-link me-2 text-primary"></i>
+                    View Fullscreen</a></li>
+        </ul>
+    </li>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="aboutDropdown" role="button"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            About
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="aboutDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="mailto:{{ CONTACT_EMAIL }}"><i
+                        class="fa fa-envelope-o me-2 text-primary"></i> Contact Admin</a></li>
+            <li><a class="dropdown-item" href="/"><i class="fa fa-info-circle me-2 text-primary"></i> About Software</a>
+            </li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item disabled" href="#">Version 1.0.0</a></li>
+        </ul>
+    </li>
+</ul>
+{% endblock %}
+
+{% block header_actions %}
+<div class="d-flex align-items-center gap-3">
+    <span class="text-secondary fw-bold fs-6 d-flex align-items-center" id="connection-status">
+        <span class="status-dot me-2" id="status-indicator"></span>
+        <span id="status-text" style="font-size: 0.85rem;">Connected</span>
+    </span>
+    <div class="vr" style="opacity: 0.15; height: 20px;"></div>
+    <button class="btn btn-primary fw-bold px-3 py-1 btn-sm" id="save-btn" title="Save Diagram"
+        style="border-radius: 6px;">
+        <i class="fa fa-save me-1"></i> Save
+    </button>
+    <button class="btn px-3 py-1 btn-sm" id="release-btn" title="Release Lock and Exit"
+        style="color: #ba1a1a; background-color: #ffdad6; border: none; border-radius: 6px; font-weight: 600;">
+        <i class="fa fa-sign-out me-1"></i> Save &amp; Close
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/diagram-js.css">
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css">
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-font/css/bpmn.css">
+<style>
+    #canvas-container {
+        position: relative;
+        height: calc(100vh - 150px);
+        margin: 0 1rem;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        background: #fff;
+    }
+
+    #canvas {
+        height: 100%;
+        width: 100%;
+        outline: none;
+    }
+
+    .floating-toolkit {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 8px 15px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+    }
+
+    .status-dot {
+        height: 10px;
+        width: 10px;
+        background-color: #28a745;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+
+    .status-dot.disconnected {
+        background-color: #dc3545;
+        animation: none;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.3;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    .sidebar {
+        transition: width 0.3s ease;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    .sidebar.collapsed {
+        width: 50px !important;
+        padding: 0 !important;
+        cursor: pointer;
+    }
+
+    .sidebar.collapsed> :not(.collapse-text):not(button#toggle-sidebar-btn):not(i#toggle-icon) {
+        display: none !important;
+    }
+
+    .sidebar.collapsed .collapse-text {
+        display: block !important;
+        transform: rotate(90deg);
+        transform-origin: left top;
+        white-space: nowrap;
+        position: absolute;
+        left: 30px;
+        top: 50px;
+        font-weight: 700;
+        color: var(--bs-primary);
+        letter-spacing: 2px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex" style="height: calc(100vh - 90px);">
+    <!-- Sidebar -->
+    <div class="flex-shrink-0 p-4 border-end sidebar position-relative" id="left-sidebar"
+        style="width: 320px; background-color: var(--surface-highest); overflow-y: auto;">
+
+        <div class="collapse-text d-none">Process Metadata</div>
+        <button class="btn btn-sm text-muted position-absolute" id="toggle-sidebar-btn"
+            style="top: 10px; right: 10px; z-index: 10;" title="Collapse Panel" onclick="toggleSidebar()">
+            <i class="fa fa-chevron-left" id="toggle-icon"></i>
+        </button>
+
+        <a href="/app/" class="btn btn-sm mb-4 px-3 py-2"
+            style="background-color: var(--surface-low); color: var(--bs-primary); border: none;">
+            <i class="fa fa-arrow-left me-2"></i> Back to Library
+        </a>
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Process</h6>
+        <input type="text" id="meta-project-name" class="form-control border-0 px-0 fw-bold"
+            style="color: var(--bs-primary); font-family: var(--bs-heading-font-family); font-size: 1.5rem; background: transparent; box-shadow: none;"
+            value="{{ diagram.project_name }}" placeholder="Process Name" onchange="saveMetadata()">
+
+        <hr class="my-4" style="border-color: var(--outline-variant); opacity: 0.3;">
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Diagram / Flow</h6>
+        <input type="text" id="meta-friendly-name" class="form-control border-0 px-0 fw-bold fs-5 text-dark mb-2"
+            style="font-family: var(--bs-heading-font-family); background: transparent; box-shadow: none;"
+            value="{{ diagram.friendly_name }}" placeholder="Flow Name" onchange="validateFlowName(); saveMetadata();">
+        <div id="flow-name-error" class="text-danger d-none mb-3" style="font-size: 0.75rem;">Only alphanumeric
+            characters, spaces, dashes (-), and underscores (_) are allowed.</div>
+
+        <div class="mb-4">
+            <span class="badge border-0 rounded-pill px-3 py-2"
+                style="background-color: #d5e3fc; color: #57657a; font-weight: 600;">
+                <i class="fa fa-pencil me-1"></i> Editor Mode
+            </span>
+        </div>
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Author</h6>
+        <p class="text-dark fw-medium mb-1"><i class="fa fa-user-o me-2 text-muted"></i>{{ diagram.author_username }}
+        </p>
+        {% if diagram.last_edited_by %}
+        <p class="text-muted mb-2" style="font-size: 0.75rem;"><i class="fa fa-pencil me-2"></i>Last edited by {{
+            diagram.last_edited_by }}</p>
+        {% endif %}
+
+        <hr class="my-4" style="border-color: var(--outline-variant); opacity: 0.3;">
+
+        <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;">
+            Description</h6>
+        <textarea id="meta-description" class="form-control border-0 px-0 text-muted lh-lg"
+            style="font-size: 0.85rem; background: transparent; resize: none; box-shadow: none;" rows="4"
+            placeholder="Brief description..." onchange="saveMetadata()">{{ diagram.project_description }}</textarea>
+    </div>
+
+    <!-- Main Canvas Area -->
+    <div class="flex-grow-1 position-relative p-4" style="background-color: var(--bs-body-bg);">
+        <div id="canvas-container" class="glass-panel"
+            style="height: 100%; border-radius: 12px; position: relative; overflow: hidden; border: none;">
+            <div id="canvas" style="height: 100%; width: 100%; outline: none; background: transparent;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Diagram Modal -->
+<div class="modal fade" id="deleteDiagramModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 glass-panel">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger" style="font-family: var(--bs-heading-font-family);"><i
+                        class="fa fa-exclamation-triangle me-2"></i> Delete This Flow</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                {% set delete_target_name = diagram.project_name if diagram.project_name else diagram.friendly_name %}
+                <p class="text-dark mb-2" style="font-size: 0.95rem;">
+                    This action cannot be undone. This will permanently delete the <strong>{{ delete_target_name
+                        }}</strong> flow.
+                </p>
+                <p class="text-muted mb-2" style="font-size: 0.85rem;">
+                    Please type <strong>{{ delete_target_name }}</strong> to confirm.
+                </p>
+                <input type="text" id="delete-confirm-input" class="form-control" placeholder="{{ delete_target_name }}"
+                    oninput="checkDeleteMatch()">
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn text-secondary" data-bs-dismiss="modal"
+                    style="background-color: transparent;">Cancel</button>
+                <button type="button" class="btn btn-danger disabled" id="confirm-delete-btn"
+                    onclick="executeDelete()"><i class="fa fa-trash-o me-1"></i> Delete Flow</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-modeler.development.js"></script>
+<script>
+    const diagramId = "{{ diagram.id }}";
+    const heartbeatFreq = parseInt("{{ HEARTBEAT_FREQUENCY_SEC }}") * 1000;
+    const idleTimeoutMin = parseInt("{{ IDLE_TIMEOUT_MIN }}");
+    const idleFreq = idleTimeoutMin * 60 * 1000;
+
+    let modeler;
+    let idleTimer;
+
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    const saveBtn = document.getElementById('save-btn');
+    const releaseBtn = document.getElementById('release-btn');
+
+    function updateStatus(connected, text) {
+        statusText.innerText = text;
+        if (connected) {
+            statusIndicator.classList.remove('disconnected');
+            statusText.className = "text-success fw-bold";
+        } else {
+            statusIndicator.classList.add('disconnected');
+            statusText.className = "text-danger fw-bold";
+        }
+    }
+
+    // BPMN JS Init
+    document.addEventListener("DOMContentLoaded", function () {
+        // Track local usage
+        let recents = JSON.parse(localStorage.getItem('recent_bpmn') || '[]');
+        if (!recents.includes("{{ diagram.id }}")) {
+            recents.push("{{ diagram.id }}");
+            localStorage.setItem('recent_bpmn', JSON.stringify(recents));
+        }
+
+        modeler = new BpmnJS({
+            container: '#canvas',
+            keyboard: { bindTo: window }
+        });
+
+        // Load Diagram
+        fetch(`/api/diagram/${diagramId}/xml`)
+            .then(res => {
+                if (!res.ok) throw new Error("File not found");
+                return res.text();
+            })
+            .then(xml => modeler.importXML(xml))
+            .then(() => {
+                const canvas = modeler.get('canvas');
+                canvas.zoom('fit-viewport', 'auto');
+            })
+            .catch(err => {
+                console.error("Load error:", err);
+                alert("Could not load the diagram. Another user might have locked it earlier. Returning to dashboard.");
+                window.location.href = '/app/';
+            });
+
+        // Setup File Menu Tools
+        document.getElementById('menu-download-bpmn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { xml } = await modeler.saveXML({ format: true });
+            const a = document.createElement('a');
+            a.href = 'data:application/bpmn20-xml;charset=UTF-8,' + encodeURIComponent(xml);
+            const flownameStr = document.getElementById('meta-friendly-name').value.toLowerCase().replace(/[^a-z0-9 _-]/gi, '').trim() || 'process';
+            a.download = flownameStr + '.bpmn';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        document.getElementById('menu-download-svg').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const { svg } = await modeler.saveSVG();
+            const a = document.createElement('a');
+            a.href = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+            const flownameStr = document.getElementById('meta-friendly-name').value.toLowerCase().replace(/[^a-z0-9 _-]/gi, '').trim() || 'process';
+            a.download = flownameStr + '.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        // Setup Edit Menu Tools
+        document.getElementById('menu-undo').addEventListener('click', (e) => {
+            e.preventDefault();
+            modeler.get('commandStack').undo();
+        });
+
+        document.getElementById('menu-redo').addEventListener('click', (e) => {
+            e.preventDefault();
+            modeler.get('commandStack').redo();
+        });
+
+        document.getElementById('menu-autofit').addEventListener('click', (e) => {
+            e.preventDefault();
+            modeler.get('canvas').zoom('fit-viewport', 'auto');
+        });
+
+        // Setup initial heartbeat to acquire lock
+        doHeartbeat();
+        setInterval(doHeartbeat, heartbeatFreq);
+
+        // Setup idle detection
+        resetIdleTimer();
+        document.addEventListener('mousemove', resetIdleTimer);
+        document.addEventListener('keypress', resetIdleTimer);
+        document.addEventListener('mousedown', resetIdleTimer);
+    });
+
+    async function saveDiagram() {
+        const oSavBtnText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving...';
+        saveBtn.disabled = true;
+
+        try {
+            const { xml } = await modeler.saveXML({ format: true });
+            const res = await fetch(`/api/diagram/${diagramId}/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/xml' },
+                body: xml
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail || "Failed to save");
+            }
+
+            // show success outline briefly
+            saveBtn.classList.replace('btn-primary', 'btn-success');
+            setTimeout(() => saveBtn.classList.replace('btn-success', 'btn-primary'), 2000);
+
+        } catch (err) {
+            alert("Error saving diagram: " + err.message);
+            updateStatus(false, "Save Failed");
+        } finally {
+            saveBtn.innerHTML = oSavBtnText;
+            saveBtn.disabled = false;
+        }
+    }
+
+    async function saveMetadata() {
+        try {
+            const payload = {
+                project_name: document.getElementById('meta-project-name').value,
+                friendly_name: document.getElementById('meta-friendly-name').value,
+                project_description: document.getElementById('meta-description').value
+            };
+            await fetch(`/api/diagram/${diagramId}/metadata`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } catch (err) {
+            console.error("Failed to save metadata", err);
+        }
+    }
+
+    async function releaseLock() {
+        try {
+            await fetch(`/api/diagram/${diagramId}/release`, { method: 'POST' });
+        } catch (e) { console.error("Release fail:", e); }
+    }
+
+    async function doHeartbeat() {
+        try {
+            const res = await fetch(`/api/diagram/${diagramId}/heartbeat`, { method: 'POST' });
+            if (!res.ok) {
+                const data = await res.json();
+                updateStatus(false, data.detail || "Lock Denied");
+                throw new Error("Lock denied");
+            }
+            updateStatus(true, "Connected");
+        } catch (err) {
+            console.error("Heartbeat failed", err);
+            updateStatus(false, "Lock Conflict");
+            // If they lose lock, prevent save and redirect
+            alert("You have lost the edit lock! Redirecting to view mode.");
+            window.location.href = `/app/${diagramId}/view`;
+        }
+    }
+
+    function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+            alert("You have been idle for too long! Automatically saving and returning to view mode.");
+            saveDiagram().then(() => releaseLock()).then(() => {
+                window.location.href = `/app/${diagramId}/view`;
+            });
+        }, idleFreq);
+    }
+
+    // Actions
+    saveBtn.addEventListener('click', saveDiagram);
+
+    releaseBtn.addEventListener('click', async () => {
+        await saveDiagram();
+        await releaseLock();
+        window.location.href = '/app/';
+    });
+
+    // Attempt Graceful exit
+    window.addEventListener("beforeunload", function (e) {
+        if (!document.getElementById('delete-confirm-input').disabled) {
+            navigator.sendBeacon(`/api/diagram/${diagramId}/release`);
+        }
+    });
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('left-sidebar');
+        const icon = document.getElementById('toggle-icon');
+
+        sidebar.classList.toggle('collapsed');
+        if (sidebar.classList.contains('collapsed')) {
+            icon.className = "fa fa-chevron-right";
+        } else {
+            icon.className = "fa fa-chevron-left";
+        }
+    }
+
+    function validateFlowName() {
+        const input = document.getElementById('meta-friendly-name');
+        const errorMsg = document.getElementById('flow-name-error');
+        // Match anything that is NOT a lowercase/uppercase letter, number, space, dash, or underscore
+        const re = /[^a-zA-Z0-9 _-]/;
+        if (re.test(input.value)) {
+            input.value = input.value.replace(/[^a-zA-Z0-9 _-]/g, '');
+            errorMsg.classList.remove('d-none');
+        } else {
+            errorMsg.classList.add('d-none');
+        }
+    }
+
+    const targetDeleteName = "{{ diagram.project_name if diagram.project_name else diagram.friendly_name }}";
+    function checkDeleteMatch() {
+        const input = document.getElementById('delete-confirm-input').value;
+        const btn = document.getElementById('confirm-delete-btn');
+        if (input === targetDeleteName) {
+            btn.classList.remove('disabled');
+        } else {
+            btn.classList.add('disabled');
+        }
+    }
+
+    async function executeDelete() {
+        const btn = document.getElementById('confirm-delete-btn');
+        if (btn.classList.contains('disabled')) return;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Deleting...';
+        try {
+            await fetch(`/api/diagram/${diagramId}/delete`, { method: 'POST' });
+            window.location.href = '/app/';
+        } catch (err) {
+            console.error("Delete failed", err);
+            alert("Failed to delete flow.");
+        }
+    }
+
+</script>
+{% endblock %}
