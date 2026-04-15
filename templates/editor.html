@@ -20,6 +20,11 @@
             <li>
                 <hr class="dropdown-divider">
             </li>
+            <li><a class="dropdown-item" href="#" id="menu-replace-bpmn"><i class="fa fa-upload me-2 text-primary"></i>
+                    Replace bpmn with an Upload</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
             <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
                     data-bs-target="#deleteDiagramModal"><i class="fa fa-trash-o me-2"></i> Delete Process</a></li>
         </ul>
@@ -34,11 +39,20 @@
             </li>
             <li><a class="dropdown-item" href="#" id="menu-redo"><i class="fa fa-repeat me-2 text-primary"></i> Redo</a>
             </li>
+        </ul>
+    </li>
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="viewDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            View
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="viewDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" onclick="toggleGridBackground(); return false;"><i class="fa fa-th me-2 text-primary"></i> Toggle Grid Background</a></li>
+            <li><a class="dropdown-item" href="#" id="menu-autofit"><i class="fa fa-arrows-alt me-2 text-primary"></i>
+                    Auto fit diagram</a></li>
             <li>
                 <hr class="dropdown-divider">
             </li>
-            <li><a class="dropdown-item" href="#" id="menu-autofit"><i class="fa fa-arrows-alt me-2 text-primary"></i>
-                    Auto fit diagram</a></li>
             <li><a class="dropdown-item" href="/embed/{{ diagram.id }}/" target="_blank"><i class="fa fa-external-link me-2 text-primary"></i>
                     View Fullscreen</a></li>
         </ul>
@@ -46,9 +60,13 @@
     <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle text-dark" href="#" id="aboutDropdown" role="button"
             data-bs-toggle="dropdown" aria-expanded="false">
-            About
+            Help
         </a>
         <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="aboutDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#keyboardShortcutsModal"><i class="fa fa-keyboard-o me-2 text-primary"></i> Keyboard Shortcuts</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
             <li><a class="dropdown-item" href="mailto:{{ CONTACT_EMAIL }}"><i
                         class="fa fa-envelope-o me-2 text-primary"></i> Contact Admin</a></li>
             <li><a class="dropdown-item" href="/"><i class="fa fa-info-circle me-2 text-primary"></i> About Software</a>
@@ -56,7 +74,7 @@
             <li>
                 <hr class="dropdown-divider">
             </li>
-            <li><a class="dropdown-item disabled" href="#">Version 1.0.0</a></li>
+            <li><a class="dropdown-item disabled" href="#">Version 0.1.1</a></li>
         </ul>
     </li>
 </ul>
@@ -173,14 +191,15 @@
 {% endblock %}
 
 {% block content %}
+<input type="file" id="replace-upload-input" accept=".bpmn,.xml" class="d-none">
 <div class="d-flex" style="height: calc(100vh - 90px);">
     <!-- Sidebar -->
     <div class="flex-shrink-0 p-4 border-end sidebar position-relative" id="left-sidebar"
-        style="width: 320px; background-color: var(--surface-highest); overflow-y: auto;">
+        style="width: 320px; background-color: var(--surface-highest); overflow-y: auto;" onclick="if(this.classList.contains('collapsed')) toggleSidebar()">
 
         <div class="collapse-text d-none">Process Metadata</div>
         <button class="btn btn-sm text-muted position-absolute" id="toggle-sidebar-btn"
-            style="top: 10px; right: 10px; z-index: 10;" title="Collapse Panel" onclick="toggleSidebar()">
+            style="top: 10px; right: 10px; z-index: 10;" title="Collapse Panel" onclick="event.stopPropagation(); toggleSidebar()">
             <i class="fa fa-chevron-left" id="toggle-icon"></i>
         </button>
 
@@ -352,6 +371,43 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+        });
+
+        // Setup Replace Flow Upload
+        document.getElementById('menu-replace-bpmn').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('replace-upload-input').click();
+        });
+
+        document.getElementById('replace-upload-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (file.size > 10 * 1024 * 1024) {
+                alert("File exceeds 10MB limit.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const xml = event.target.result;
+                if (!xml.includes('<bpmn:definitions')) {
+                    alert("Invalid BPMN XML payload detected.");
+                    return;
+                }
+                
+                try {
+                    await modeler.importXML(xml);
+                    modeler.get('canvas').zoom('fit-viewport', 'auto');
+                    await saveDiagram(); // Force overwrite to storage immediately
+                    alert("Diagram successfully replaced and saved!");
+                } catch (err) {
+                    console.error("Replacement Error:", err);
+                    alert("Failed to render the uploaded diagram.");
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ""; // Reset input so same file can trigger change again
         });
 
         // Setup Edit Menu Tools

@@ -17,7 +17,7 @@ _config = load_config()
 app_config = _config.get("app", {})
 CUSTOM_LOGO = app_config.get("logo", "")
 CUSTOM_SUBTITLE = app_config.get("subtitle", "Collaborative Process Mapping")
-CONTACT_EMAIL = app_config.get("contact_email", "testuser@unfoundry.org")
+CONTACT_EMAIL = app_config.get("contact_email", "testuser@unfoundry.co.uk")
 BPMN_TEMPLATES_PATH = BASE_DIR / app_config.get("templates_path", "bpmn_templates")
 BPMN_TEMPLATES_PATH.mkdir(exist_ok=True, parents=True)
 

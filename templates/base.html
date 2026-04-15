@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live BPMN Editor</title>
+    <title>BPMN Architect</title>
+    <meta name="description" content="A robust, collaborative process mapping environment designed to help your team document, streamline, and architect automation flows visually using industry-standard BPMN 2.0">
+    <meta author="Unfoundry">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome 4.7 -->
@@ -11,6 +13,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="shortcut icon" href="/static/bpmn-arch.svg" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     
     {% block extra_head %}{% endblock %}
@@ -27,10 +30,15 @@
             --outline-variant: #c2c6d3;
         }
         
+        *:hover{
+            transition: 0.4s ease;
+        }
+
         body {
             font-family: var(--bs-body-font-family);
             background-color: var(--bs-body-bg);
             color: #191c1e;
+            
         }
 
         h1, h2, h3, h4, h5, h6, .navbar-brand {
@@ -73,14 +81,21 @@
             box-shadow: 0px 24px 48px rgba(25, 28, 30, 0.06);
             border: 1px solid rgba(194, 198, 211, 0.15); /* Ghost Border */
         }
+        
+        .canvas-grid-bg {
+            background-color: #ffffff;
+            opacity: 0.8;
+            background-image: radial-gradient(#82838c 1.2000000000000002px, #ffffff 1.2000000000000002px);
+            background-size: 24px 24px;
+        }
 
-        .navbar-brand img { height: 40px; margin-right: 15px; }
+        .navbar-brand img { height: 25px; margin-right: 15px; }
     </style>
 </head>
 <body>
     {% block navbar %}
     <nav class="navbar navbar-expand-lg border-bottom" style="background-color: var(--surface-highest);">
-        <div class="container-fluid px-4 px-lg-5 py-1">
+        <div class="container-fluid px-4 px-lg-5 py-0">
             <a class="navbar-brand d-flex align-items-center text-dark" href="/app/">
                 <img src="{{ CUSTOM_LOGO }}" alt="Logo">
                 <span>BPMN Architect</span>
@@ -109,9 +124,42 @@
 
     <nav class="navbar fixed-bottom border-top" style="background-color: #f2f4f6; min-height: 35px; padding: 2px 0;">
         <div class="container-fluid justify-content-center text-muted" style="font-size: 0.75rem;">
-            <span>BPMN Architect - MIT Licensed - Developed by unfoundry.org</span>
+            <span>BPMN Architect - MIT Licensed - Developed by <a href="https://unfoundry.co.uk" target="_blank">unfoundry.co.uk</a></span>
         </div>
     </nav>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal fade" id="keyboardShortcutsModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content border-0 glass-panel">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold" style="font-family: var(--bs-heading-font-family);">Keyboard Shortcuts</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pb-4" style="font-size: 0.85rem;">
+                    <strong class="text-dark d-block mb-2">Global</strong>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Create New Flow</span>
+                        <code>Ctrl+N</code>
+                    </div>
+                    
+                    <strong class="text-dark d-block mb-2 mt-4">Editor</strong>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Save Output</span>
+                        <code>Ctrl+S</code>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Undo Change</span>
+                        <code>Ctrl+Z</code>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Redo Change</span>
+                        <code>Ctrl+Y</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -121,6 +169,48 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
+
+        // Grid Background Toggle
+        function toggleGridBackground() {
+            const canvasEl = document.getElementById('canvas');
+            if (canvasEl) {
+                canvasEl.classList.toggle('canvas-grid-bg');
+                const isGridOn = canvasEl.classList.contains('canvas-grid-bg');
+                localStorage.setItem('grid_bg', isGridOn);
+            }
+        }
+        
+        // Load Grid settings explicitly onto canvas
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('grid_bg') === 'true') {
+                const canvasEl = document.getElementById('canvas');
+                if (canvasEl) canvasEl.classList.add('canvas-grid-bg');
+            }
+        });
+
+        // Global Shortcuts Hook
+        window.addEventListener('keydown', function(e) {
+            // Ctrl + S (Save logic dynamically mapped to Editor)
+            if (e.ctrlKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                const saveBtn = document.getElementById('save-btn');
+                if (saveBtn) saveBtn.click();
+            }
+            
+            // Ctrl + N (Create New mapping dynamically)
+            if (e.ctrlKey && e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                if (window.location.pathname === '/app/') {
+                    const el = document.getElementById('newDiagramModal');
+                    if (el) {
+                        const modal = new bootstrap.Modal(el);
+                        modal.show();
+                    }
+                } else {
+                    window.location.href = '/app/#new-process';
+                }
+            }
+        });
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>

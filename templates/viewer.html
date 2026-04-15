@@ -10,6 +10,37 @@
         width: 100%;
         outline: none;
     }
+
+    .sidebar {
+        transition: width 0.3s ease;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    .sidebar.collapsed {
+        width: 50px !important;
+        padding: 0 !important;
+        cursor: pointer;
+    }
+
+    .sidebar.collapsed> :not(.collapse-text):not(button#toggle-sidebar-btn):not(i#toggle-icon) {
+        display: none !important;
+    }
+
+    .sidebar.collapsed .collapse-text {
+        display: block !important;
+        transform: rotate(90deg);
+        transform-origin: left top;
+        white-space: nowrap;
+        position: absolute;
+        left: 30px;
+        top: 50px;
+        font-weight: 700;
+        color: var(--bs-primary);
+        letter-spacing: 2px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
 </style>
 {% endblock %}
 
@@ -28,11 +59,30 @@
         </ul>
     </li>
     <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-dark" href="#" id="viewDropdown" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            View
+        </a>
+        <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="viewDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" onclick="toggleGridBackground(); return false;"><i class="fa fa-th me-2 text-primary"></i> Toggle Grid Background</a></li>
+            <li><a class="dropdown-item" href="#" id="menu-view-autofit"><i class="fa fa-arrows-alt me-2 text-primary"></i> Auto fit to screen</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="/embed/{{ diagram.id }}/" target="_blank"><i class="fa fa-external-link me-2 text-primary"></i>
+                    View Fullscreen</a></li>
+        </ul>
+    </li>
+    <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle text-dark" href="#" id="aboutDropdown" role="button"
             data-bs-toggle="dropdown" aria-expanded="false">
-            About
+            Help
         </a>
         <ul class="dropdown-menu border-0 shadow-sm" aria-labelledby="aboutDropdown" style="font-size: 0.85rem;">
+            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#keyboardShortcutsModal"><i class="fa fa-keyboard-o me-2 text-primary"></i> Keyboard Shortcuts</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
             <li><a class="dropdown-item" href="mailto:{{ CONTACT_EMAIL }}"><i
                         class="fa fa-envelope-o me-2 text-primary"></i> Contact Admin</a></li>
             <li><a class="dropdown-item" href="/"><i class="fa fa-info-circle me-2 text-primary"></i> About Software</a>
@@ -40,7 +90,7 @@
             <li>
                 <hr class="dropdown-divider">
             </li>
-            <li><a class="dropdown-item disabled" href="#">Version 1.0.0</a></li>
+            <li><a class="dropdown-item disabled" href="#">Version 0.1.1</a></li>
         </ul>
     </li>
 </ul>
@@ -49,8 +99,14 @@
 {% block content %}
 <div class="d-flex" style="height: calc(100vh - 61px);">
     <!-- Sidebar -->
-    <div class="flex-shrink-0 p-4 border-end"
-        style="width: 320px; background-color: var(--surface-highest); overflow-y: auto;">
+    <div class="flex-shrink-0 p-4 border-end sidebar position-relative" id="left-sidebar"
+        style="width: 320px; background-color: var(--surface-highest); overflow-y: auto;" onclick="if(this.classList.contains('collapsed')) toggleSidebar()">
+        
+        <div class="collapse-text d-none">Process Metadata</div>
+        <button class="btn btn-sm text-muted position-absolute" id="toggle-sidebar-btn"
+            style="top: 10px; right: 10px; z-index: 10;" title="Collapse Panel" onclick="event.stopPropagation(); toggleSidebar()">
+            <i class="fa fa-chevron-left" id="toggle-icon"></i>
+        </button>
         <a href="/app/" class="btn btn-sm mb-4 px-3 py-2"
             style="background-color: var(--surface-low); color: var(--bs-primary); border: none;">
             <i class="fa fa-arrow-left me-2"></i> Back to Dashboard
@@ -91,9 +147,15 @@
         <p class="text-muted lh-lg" style="font-size: 0.85rem;">{{ diagram.project_description or 'No description
             provided.' }}</p>
 
+        {% if diagram.locked_by and diagram.lock_expires_at and diagram.lock_expires_at > now %}
+        <a href="javascript:void(0)" class="btn btn-secondary w-100 mt-4 py-2 disabled" style="font-weight: 600; opacity: 0.65; cursor: not-allowed;" title="{% if diagram.locked_by == current_user %}Active in another tab{% else %}Currently locked by {{ diagram.locked_by }}{% endif %}">
+            <i class="fa fa-lock me-1"></i> Locked by {{ diagram.locked_by }}
+        </a>
+        {% else %}
         <a href="/app/{{ diagram.id }}/edit" class="btn btn-primary w-100 mt-4 py-2" style="font-weight: 600;">
             <i class="fa fa-pencil me-1"></i> Edit Process
         </a>
+        {% endif %}
     </div>
 
     <!-- Main Canvas Area -->
@@ -131,6 +193,11 @@
             });
 
         // Tool binds
+        document.getElementById('menu-view-autofit').addEventListener('click', (e) => {
+            e.preventDefault();
+            viewer.get('canvas').zoom('fit-viewport', 'auto');
+        });
+
         document.getElementById('menu-download-bpmn').addEventListener('click', async (e) => {
             e.preventDefault();
             const { xml } = await viewer.saveXML({ format: true });
@@ -155,5 +222,17 @@
             document.body.removeChild(a);
         });
     });
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('left-sidebar');
+        const icon = document.getElementById('toggle-icon');
+
+        sidebar.classList.toggle('collapsed');
+        if (sidebar.classList.contains('collapsed')) {
+            icon.className = "fa fa-chevron-right";
+        } else {
+            icon.className = "fa fa-chevron-left";
+        }
+    }
 </script>
 {% endblock %}

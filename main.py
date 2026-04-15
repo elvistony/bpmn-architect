@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, Request, HTTPException, Form
+from fastapi import FastAPI, Depends, Request, HTTPException, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -63,25 +63,42 @@ def dashboard(request: Request, db: Session = Depends(get_db), current_user: str
     })
 
 @app.post("/app/new/")
-def create_diagram(
+async def create_diagram(
     friendly_name: str = Form(...),
     project_name: str = Form(""),
     project_description: str = Form(""),
     template_file: str = Form(""),
+    upload_file: UploadFile = File(None),
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     nano_id = generate_nano_id()
     
-    # Copy template to storage path or fallback to empty template
     target_file = DIAGRAM_STORAGE_PATH / f"{nano_id}.bpmn"
-    if template_file:
+    
+    # Priority 1: User uploaded a file manually
+    if upload_file and upload_file.filename:
+        content = await upload_file.read()
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Uploaded file exceeds 10MB limit.")
+            
+        content_str = content.decode('utf-8', errors='ignore')
+        if "<bpmn:definitions" not in content_str:
+            raise HTTPException(status_code=400, detail="Invalid BPMN XML payload detected.")
+            
+        with open(target_file, "wb") as f:
+            f.write(content)
+            
+    # Priority 2: Use Template Copy if provided
+    elif template_file:
         source_template = BPMN_TEMPLATES_PATH / template_file
         if source_template.exists():
             shutil.copy2(source_template, target_file)
         else:
             with open(target_file, "w") as f:
                 f.write('<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn"></bpmn:definitions>')
+    
+    # Priority 3: Bare minimum definitions block
     else:
         with open(target_file, "w") as f:
             f.write('<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn"></bpmn:definitions>')
@@ -105,7 +122,7 @@ def view_diagram(id: str, request: Request, db: Session = Depends(get_db), curre
     if not diagram or getattr(diagram, 'is_deleted', False):
         raise HTTPException(status_code=404, detail="Diagram not found or deleted")
     return templates.TemplateResponse(request=request, name="viewer.html", context={
-        "request": request, "diagram": diagram, "current_user": current_user
+        "request": request, "diagram": diagram, "current_user": current_user, "now": datetime.utcnow()
     })
 
 @app.get("/app/{id}/edit", response_class=HTMLResponse)
@@ -240,6 +257,13 @@ async def api_save_xml(id: str, request: Request, db: Session = Depends(get_db),
             raise HTTPException(status_code=403, detail="File is locked by another user")
             
     payload = await request.body()
+    
+    if len(payload) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Uploaded file exceeds 10MB limit.")
+        
+    payload_str = payload.decode('utf-8', errors='ignore')
+    if "<bpmn:definitions" not in payload_str:
+        raise HTTPException(status_code=400, detail="Invalid BPMN XML payload detected.")
     
     file_path = DIAGRAM_STORAGE_PATH / f"{id}.bpmn"
     temp_path = DIAGRAM_STORAGE_PATH / f"{id}.tmp"

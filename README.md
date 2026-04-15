@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/img/bpmn-architect.svg" alt="BPMN Architect Logo" width="120" />
 
-  <h1>BPMN Architect</h1>
+  <h1>BPMN Architect v0.1.1</h1>
   <p><strong>Collaborative Process Mapping & Self-Hosted Live BPMN Editor</strong></p>
 
   <p>
@@ -15,7 +15,7 @@
 
 ---
 
-![Overview](/docs/img/overview.png)
+![Overview](/docs/img/v0.1.1.png)
 
 ## Overview
 
