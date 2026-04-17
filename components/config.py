@@ -15,6 +15,7 @@ def load_config():
 _config = load_config()
 
 app_config = _config.get("app", {})
+SITE_PATH = app_config.get("site_path", "")
 CUSTOM_LOGO = app_config.get("logo", "")
 CUSTOM_SUBTITLE = app_config.get("subtitle", "Collaborative Process Mapping")
 CONTACT_EMAIL = app_config.get("contact_email", "testuser@unfoundry.co.uk")

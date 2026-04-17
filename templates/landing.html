@@ -9,10 +9,10 @@
             <p class="lead text-muted mb-4">
                 A robust, collaborative process mapping environment designed to help your team document, streamline, and architect automation flows visually using industry-standard BPMN 2.0.
             </p>
-            <a href="/app/" class="btn btn-primary btn-lg shadow-sm px-4 me-2">
+            <a href="{{ request.url_for('root') }}app/" class="btn btn-primary btn-lg shadow-sm px-4 me-2">
                 <i class="fa fa-folder-open border-end pe-2 me-2"></i> Open Library
             </a>
-            <a href="/app/#new-process" class="btn btn-outline-secondary btn-lg shadow-sm px-4" style="border-width: 2px;">
+            <a href="{{ request.url_for('root') }}app/#new-process" class="btn btn-outline-secondary btn-lg shadow-sm px-4" style="border-width: 2px;">
                 <i class="fa fa-plus me-2"></i> New Process
             </a>
         </div>

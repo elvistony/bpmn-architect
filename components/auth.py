@@ -42,10 +42,6 @@ def get_current_user(request: Request, credentials: HTTPBasicCredentials = Depen
             )
         return credentials.username
 '''
-
-from fastapi import Request, HTTPException, Depends 
-from fastapi.security import HTTPBasicCredentials 
-import secrets 
 import win32security 
 import win32api 
 
@@ -58,32 +54,32 @@ def get_current_user( request: Request, credentials: HTTPBasicCredentials = Depe
             detail="Missing X-IIS-WindowsAuthToken header" 
             ) 
 
-    try: 
-        # Convert hex string to HANDLE 
-        token_handle = int(token_handle_str, 16) 
-
-        # Get SID from token 
-        sid = win32security.GetTokenInformation( 
-        token_handle, 
-        win32security.TokenUser 
-        )[0] 
-
-        # Resolve SID to DOMAIN\\User 
-        user, domain, _ = win32security.LookupAccountSid(None, sid) 
-
-        return f"{domain}\\{user}" 
-
-    except Exception as exc: 
-        raise HTTPException( 
-        status_code=401, 
-        detail=f"Invalid Windows auth token: {exc}" 
-        ) 
-
-    finally: 
         try: 
-            win32api.CloseHandle(token_handle) 
-        except Exception: 
-            pass 
+            # Convert hex string to HANDLE 
+            token_handle = int(token_handle_str, 16) 
+
+            # Get SID from token 
+            sid = win32security.GetTokenInformation( 
+            token_handle, 
+            win32security.TokenUser 
+            )[0] 
+
+            # Resolve SID to DOMAIN\\User 
+            user, domain, _ = win32security.LookupAccountSid(None, sid) 
+
+            return f"{domain}\\{user}" 
+
+        except Exception as exc: 
+            raise HTTPException( 
+            status_code=401, 
+            detail=f"Invalid Windows auth token: {exc}" 
+            ) 
+
+        finally: 
+            try: 
+                win32api.CloseHandle(token_handle) 
+            except Exception: 
+                pass 
 
     # ----------------------------- 
     # Basic auth fallback 
@@ -109,11 +105,11 @@ def get_current_user( request: Request, credentials: HTTPBasicCredentials = Depe
         expected_p.encode("utf8"), 
         ) 
 
-    if not (is_correct_username and is_correct_password): 
-        raise HTTPException( 
-        status_code=401, 
-        detail="Incorrect username or password", 
-        headers={"WWW-Authenticate": "Basic"}, 
-        ) 
+        if not (is_correct_username and is_correct_password): 
+            raise HTTPException( 
+            status_code=401, 
+            detail="Incorrect username or password", 
+            headers={"WWW-Authenticate": "Basic"}, 
+            ) 
 
     return credentials.username

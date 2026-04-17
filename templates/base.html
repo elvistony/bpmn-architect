@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BPMN Architect</title>
-    <meta name="description" content="A robust, collaborative process mapping environment designed to help your team document, streamline, and architect automation flows visually using industry-standard BPMN 2.0">
+    <meta name="description"
+        content="A robust, collaborative process mapping environment designed to help your team document, streamline, and architect automation flows visually using industry-standard BPMN 2.0">
     <meta author="Unfoundry">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -13,11 +15,14 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="shortcut icon" href="/static/bpmn-arch.svg" type="image/x-icon">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link rel="shortcut icon" href="{{ request.url_for('root') }}static/bpmn-arch.svg" type="image/x-icon">
+    <link rel="stylesheet" href="{{ request.url_for('root') }}static/css/styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+
     {% block extra_head %}{% endblock %}
-    
+
     <style>
         :root {
             --bs-primary: #00346f;
@@ -29,8 +34,8 @@
             --surface-lowest: #ffffff;
             --outline-variant: #c2c6d3;
         }
-        
-        *:hover{
+
+        div,button,a:hover {
             transition: 0.4s ease;
         }
 
@@ -38,10 +43,16 @@
             font-family: var(--bs-body-font-family);
             background-color: var(--bs-body-bg);
             color: #191c1e;
-            
+
         }
 
-        h1, h2, h3, h4, h5, h6, .navbar-brand {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .navbar-brand {
             font-family: var(--bs-heading-font-family);
             font-weight: 700;
         }
@@ -70,7 +81,8 @@
         }
 
         /* The No-Line Rule */
-        .card, .table {
+        .card,
+        .table {
             border: none !important;
         }
 
@@ -79,31 +91,36 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             box-shadow: 0px 24px 48px rgba(25, 28, 30, 0.06);
-            border: 1px solid rgba(194, 198, 211, 0.15); /* Ghost Border */
+            border: 1px solid rgba(194, 198, 211, 0.15);
+            /* Ghost Border */
         }
-        
+
         .canvas-grid-bg {
             background-color: #ffffff;
             opacity: 0.8;
-            background-image: radial-gradient(#82838c 1.2000000000000002px, #ffffff 1.2000000000000002px);
+            background-image: radial-gradient(#888888 1.2000000000000002px, #ffffff 1.2000000000000002px);
             background-size: 24px 24px;
         }
 
-        .navbar-brand img { height: 25px; margin-right: 15px; }
+        .navbar-brand img {
+            height: 25px;
+            margin-right: 15px;
+        }
     </style>
 </head>
+
 <body>
     {% block navbar %}
     <nav class="navbar navbar-expand-lg border-bottom" style="background-color: var(--surface-highest);">
         <div class="container-fluid px-4 px-lg-5 py-0">
-            <a class="navbar-brand d-flex align-items-center text-dark" href="/app/">
-                <img src="{{ CUSTOM_LOGO }}" alt="Logo">
+            <a class="navbar-brand d-flex align-items-center text-dark" href="{{ request.url_for('root') }}app/">
+                <img src="{{ request.url_for('root') }}{{ CUSTOM_LOGO }}" alt="Logo">
                 <span>BPMN Architect</span>
             </a>
-            
+
             <!-- Menubar Injection -->
             {% block menubar %}{% endblock %}
-            
+
             <!-- Header Actions Injection -->
             <div class="ms-auto d-flex align-items-center gap-2">
                 {% block header_actions %}{% endblock %}
@@ -111,8 +128,10 @@
 
             <div class="d-flex text-dark align-items-center ms-3">
                 {% if current_user %}
-                <div class="position-relative" data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ current_user }}" style="cursor: pointer;">
-                    <img src="https://ui-avatars.com/api/?name={{ current_user }}&background=00346f&color=fff&rounded=true" alt="User" style="width: 32px; height: 32px;">
+                <div class="position-relative" data-bs-toggle="tooltip" data-bs-placement="bottom"
+                    title="{{ current_user }}" style="cursor: pointer;">
+                    <img src="https://ui-avatars.com/api/?name={{ current_user }}&background=00346f&color=fff&rounded=true"
+                        alt="User" style="width: 32px; height: 32px;">
                 </div>
                 {% endif %}
             </div>
@@ -124,7 +143,8 @@
 
     <nav class="navbar fixed-bottom border-top" style="background-color: #f2f4f6; min-height: 35px; padding: 2px 0;">
         <div class="container-fluid justify-content-center text-muted" style="font-size: 0.75rem;">
-            <span>BPMN Architect - MIT Licensed - Developed by <a href="https://unfoundry.co.uk" target="_blank">unfoundry.co.uk</a></span>
+            <span>BPMN Architect - MIT Licensed - Developed by <a href="https://unfoundry.co.uk"
+                    target="_blank">unfoundry.co.uk</a></span>
         </div>
     </nav>
 
@@ -133,7 +153,8 @@
         <div class="modal-dialog modal-sm">
             <div class="modal-content border-0 glass-panel">
                 <div class="modal-header border-0 pb-0">
-                    <h6 class="modal-title fw-bold" style="font-family: var(--bs-heading-font-family);">Keyboard Shortcuts</h6>
+                    <h6 class="modal-title fw-bold" style="font-family: var(--bs-heading-font-family);">Keyboard
+                        Shortcuts</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body pb-4" style="font-size: 0.85rem;">
@@ -142,7 +163,7 @@
                         <span class="text-muted">Create New Flow</span>
                         <code>Ctrl+N</code>
                     </div>
-                    
+
                     <strong class="text-dark d-block mb-2 mt-4">Editor</strong>
                     <div class="d-flex justify-content-between mb-1">
                         <span class="text-muted">Save Output</span>
@@ -179,7 +200,7 @@
                 localStorage.setItem('grid_bg', isGridOn);
             }
         }
-        
+
         // Load Grid settings explicitly onto canvas
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('grid_bg') === 'true') {
@@ -189,14 +210,14 @@
         });
 
         // Global Shortcuts Hook
-        window.addEventListener('keydown', function(e) {
+        window.addEventListener('keydown', function (e) {
             // Ctrl + S (Save logic dynamically mapped to Editor)
             if (e.ctrlKey && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 const saveBtn = document.getElementById('save-btn');
                 if (saveBtn) saveBtn.click();
             }
-            
+
             // Ctrl + N (Create New mapping dynamically)
             if (e.ctrlKey && e.key.toLowerCase() === 'n') {
                 e.preventDefault();
@@ -214,4 +235,5 @@
     </script>
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>

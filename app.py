@@ -11,6 +11,7 @@ import shutil
 from components.database import engine, get_db, Base
 from components.models import Diagram
 from components.config import (
+    SITE_PATH,
     CUSTOM_LOGO, CUSTOM_SUBTITLE, CONTACT_EMAIL, DIAGRAM_STORAGE_PATH, 
     HEARTBEAT_FREQUENCY_SEC, BPMN_TEMPLATES_PATH, IDLE_TIMEOUT_MIN
 )
@@ -19,7 +20,7 @@ from components.auth import get_current_user
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Live BPMN Editor")
+app = FastAPI(title="Live BPMN Editor", root_path=SITE_PATH)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -45,7 +46,7 @@ def generate_nano_id(length=10):
 # FRONTEND ROUTES
 # -----------------
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, name="root")
 def index(request: Request):
     return templates.TemplateResponse(request=request, name="landing.html", context={"request": request})
 

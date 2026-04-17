@@ -1,8 +1,9 @@
 app:
-  logo: "/static/bpmn-arch.svg"
+  logo: "static/bpmn-arch.svg"
   subtitle: "Collaborative Process Mapping"
   contact_email: "testuser@unfoundry.co.uk"
   templates_path: "bpmn_templates"
+  site_path: ""
 
 storage:
   diagram_path: "diagram_storage"
